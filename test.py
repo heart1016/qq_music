@@ -77,8 +77,8 @@ def mapmid():
             yinyue.get_params()
             yinyue.get_quality()
             #yinyue.get_url
-            #yinyue.download_lrc()
-            #yinyue.download_music()
+            yinyue.download_lrc()
+            yinyue.download_music()
             yinyue.download_pic()
             #a = yinyue.download_music()
             #if a:
@@ -222,16 +222,16 @@ class YinYue:
             return False
     '''
     def download_music(self):
-        self.music_name = self.music_name + '.flac'
-        a = download_file(self.music_name, self.music_download_url)
+        name = self.music_name + '.flac'
+        a = download_file(name, self.music_download_url)
         if a:
-            print('flac file already download:', self.music_name)
+            print('flac file already download:', name)
 
     def download_pic(self):
-        self.music_name = self.music_name + '.jpg'
-        a = download_file(self.music_name, self.music_pic_url)
+        name = self.music_name + '.jpg'
+        a = download_file(name, self.music_pic_url)
         if a:
-            print('pic file already download:', self.music_name)
+            print('pic file already download:', name)
 
     def download_lrc(self):
         #url = 'https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric.fcg?nobase64=1&musicid={}&callback=jsonp1&g_tk=1742329486&jsonpCallback=jsonp1&loginUin=2418090286&hostUin=0&format=jsonp&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq&needNewCode=0'.format(self.music_id)
@@ -262,16 +262,17 @@ class YinYue:
         if 'lyric' in lrc_dict:
             lrc_data = base64.b64decode(lrc_dict['lyric'])
             lrc_name = self.music_name + '.lrc'
-            if os.path.exists(lrc_name):
+            file_path = os.path.join('song', lrc_name)
+            if os.path.exists(file_path):
                 print('lrc file already download:', lrc_name)
             else:
-                with open(lrc_name, 'ab') as f:
+                with open(file_path, 'ab') as f:
                     f.write(lrc_data)
                     print(bytes.decode(lrc_data))
                 if lrc_dict.get('trans'):
                     lrc_data = base64.b64decode(lrc_dict['trans'])
                     print(bytes.decode(lrc_data))
-                    with open(lrc_name, 'ab') as f:
+                    with open(file_path, 'ab') as f:
                         f.write(lrc_data)
         else:
             print('no lrc')
