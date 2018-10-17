@@ -345,6 +345,7 @@ class YinYue:
 
 if __name__ == '__main__':
     mapmid()
+    
     '''
     yinyue = YinYue('https://y.qq.com/n/yqq/song/001a7BRb4W66eQ.html')
     yinyue.get_name()
