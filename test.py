@@ -6,8 +6,10 @@ from lxml import etree
 from pyquery import PyQuery as pq
 import os
 import base64
-from random import random
-from time import time
+import random
+import time
+from file_util import add_metadata_to_song
+from file_util import resize_img
 
 class ProgressBar(object):
 
@@ -40,8 +42,10 @@ def download_file(file_name, file_url):
     headers = {
         'User-Agent': 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)',
         'Cookie': 'qqmusic_fromtag=85;qqmusic_uin=2418090286;qqmusic_key=B900BBEF65F56D7FFDC18A105976CC14011CC52E2013B01CE7C859DDD903B7D9;wxopenid= ;wxrefresh_token= ;downkey=123455789abcdefaaee',
-        'Referer': '111.202.98.148'
+        'Referer': '111.202.98.148',
+        'Connection': 'close'
     }
+    time.sleep(random.randint(0,3))
     response = requests.get(url=file_url, stream=True, headers=headers)
     length = int(response.headers.get('Content-Length'))
     file_path = os.path.join('song', file_name)
@@ -49,10 +53,10 @@ def download_file(file_name, file_url):
         return True
     else:
         progress = ProgressBar(file_path, length)
-    with open(file_path, 'wb') as f:
-        for check in response.iter_content(1024):
-            f.write(check)
-            progress.refresh(len(check))
+        with open(file_path, 'wb') as f:
+            for check in response.iter_content(1024):
+                f.write(check)
+                progress.refresh(len(check))
         return False
 
 def mapmid():
@@ -68,7 +72,8 @@ def mapmid():
         'cookie':'RK=v+HSxU5PGX; ptcz=17e3eacf682afd33b90f60d360778ccc68e654bada5bb65f335efc6a492f3ead; pgv_pvi=9761964032; pgv_pvid=2532527580; eas_sid=P1Y581u3a2B3D7E164Y5M8f2o4; tvfe_boss_uuid=c837ea95128d2c3f; ts_uid=3470501600; o_cookie=1521324101; pac_uid=1_1521324101; ptui_loginuin=2418090286; pt2gguin=o2418090286; pgv_info=ssid=s5340469438; pgv_si=s5681572864; _qpsvr_localtk=0.023101170318901243; uin=o2418090286; skey=@NOcUSQMnt; ptmbsig=184e9bcc5b672d757fabe6e1a9ec6d32385c801fcacb8517683218829047512aecc3d17f4fe5fd34; p_uin=o2418090286; pt4_token=AC2AlYDghnFTHPB-zkya4WzmOH*LHocmW9INqo*8UoU_; p_skey=rFhOTK4nNq5MKLbAl1Yj1-eL4j7QKD8kFxqBlEwBFFg_; ts_refer=ui.ptlogin2.qq.com/cgi-bin/mibao_vry%3Ftarget%3D2%26jump_login%3D0%26uin%3D2418090286%26pt_mbkey%3Dbc911da2affa42abaa7f04402d0c410ccbf58e7f6051a; yqq_stat=0; player_exist=1; yq_playschange=0; yq_playdata=; qqmusic_fromtag=66; yq_index=0; yplayer_open=1; ts_last=y.qq.com/n/yqq/playlist/2405963402.html',
         'dnt': '1',
         'referer': 'https://y.qq.com/portal/profile.html',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.92 Safari/537.36'
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.92 Safari/537.36',
+        'Connection': 'close'
     }
     json_dict = requests.get(url=url, headers=headers).text
     json_dict = json_dict[21:len(json_dict)-1]
@@ -78,9 +83,9 @@ def mapmid():
         for key in json_dict['cdlist'][0]['songlist']:
             ss ='https://y.qq.com/n/yqq/song/{}.html'.format(key['songmid'])
             print(ss)
-            print(i,key['songname'],key['songmid'], key['albummid'])
+            print(i,key['songname'],key['songmid'], key['albummid'], key['singer'][0]['name'])
             print(key['size128']/1024/1024,key['size320']/1024/1024,key['sizeflac']/1024/1024)
-            yinyue = YinYue(ss, key['songmid'], key['albummid'])
+            yinyue = YinYue(ss, key['songmid'], key['albummid'], key)
             yinyue.get_name()
             a = yinyue.get_params()
             if a:
@@ -107,7 +112,7 @@ def mapmid():
 
 class YinYue:
 
-    def __init__(self, url, mid, mmid):
+    def __init__(self, url, mid, mmid, song):
         #guid = int(random() * 2147483647) * int(time() * 1000) % 10000000000
         self.music_url = url  # 音乐的url
         self.music_id = mid  # 音乐的ID
@@ -119,6 +124,7 @@ class YinYue:
         self.params = None  # 提交的参数
         self.music_pic_url = 'http://y.gtimg.cn/music/photo_new/T002R800x800M000{}.jpg?max_age=2592000'.format(self.music_mid)
         self.guid = str('B5B8F37B3F1CDE728CFA1574AC9F5751')
+        self.song = song
         headers = {
             'authority': 'u.y.qq.com',
             'method':'GET',
@@ -132,6 +138,7 @@ class YinYue:
             'dnt':'1',
             'upgrade-insecure-requests': '1',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
+            'Connection': 'close'
         }
         self.headers = headers
 
@@ -276,15 +283,18 @@ class YinYue:
     '''
     def download_music(self):
         name = self.music_name + '.mp3'
-        a = download_file(name, self.music_download_url)
-        if a:
-            print('mp3 file already download:', name)
+        download_file(name, self.music_download_url)
 
     def download_pic(self):
         name = self.music_name + '.jpg'
-        a = download_file(name, self.music_pic_url)
-        if a:
-            print('pic file already download:', name)
+        download_file(name, self.music_pic_url)
+        resize_img(os.path.join('song', name))
+        song_file_path = os.path.join('song', self.music_name + '.mp3')
+        cover_file_path = os.path.join('song', name)
+        add_metadata_to_song(song_file_path, cover_file_path, self.song)
+        os.remove(cover_file_path)
+
+
 
     def download_lrc(self):
         #url = 'https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric.fcg?nobase64=1&musicid={}&callback=jsonp1&g_tk=1742329486&jsonpCallback=jsonp1&loginUin=2418090286&hostUin=0&format=jsonp&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq&needNewCode=0'.format(self.music_id)
@@ -303,12 +313,14 @@ class YinYue:
             'dnt': '1',
             'referer': 'https://y.qq.com/n/yqq/song/{}.html'.format(self.music_id),
             'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
+            'Connection': 'close'
         }
         """
         headers = {
             "Referer": "https://y.qq.com/portal/player.html",
             "Cookie": "skey=@LVJPZmJUX; p",
+            'Connection': 'close'
         }
         lrc_data = requests.get(url=url, stream=True, headers=headers)
         lrc_dict = json.loads(lrc_data.text[18:-1])
