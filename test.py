@@ -10,6 +10,16 @@ import random
 import time
 from file_util import add_metadata_to_song
 from file_util import resize_img
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+# 禁用安全请求警告
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+proxies={"http":"http://127.0.0.1:8118"}
+global rvkey
+global a
+global c
+rvkey = ""
+a = ""
+c = ""
 
 class ProgressBar(object):
 
@@ -40,7 +50,7 @@ class ProgressBar(object):
 def download_file(file_name, file_url):
     #guid = int(random() * 2147483647) * int(time() * 1000) % 10000000000
     headers = {
-        'User-Agent': 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)',
+        'User-Agent': 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)',
         'Cookie': 'qqmusic_fromtag=85;qqmusic_uin=2418090286;qqmusic_key=B900BBEF65F56D7FFDC18A105976CC14011CC52E2013B01CE7C859DDD903B7D9;wxopenid= ;wxrefresh_token= ;downkey=123455789abcdefaaee',
         'Referer': '111.202.98.148',
         'Connection': 'close'
@@ -72,7 +82,7 @@ def mapmid():
         'cookie':'RK=v+HSxU5PGX; ptcz=17e3eacf682afd33b90f60d360778ccc68e654bada5bb65f335efc6a492f3ead; pgv_pvi=9761964032; pgv_pvid=2532527580; eas_sid=P1Y581u3a2B3D7E164Y5M8f2o4; tvfe_boss_uuid=c837ea95128d2c3f; ts_uid=3470501600; o_cookie=1521324101; pac_uid=1_1521324101; ptui_loginuin=2418090286; pt2gguin=o2418090286; pgv_info=ssid=s5340469438; pgv_si=s5681572864; _qpsvr_localtk=0.023101170318901243; uin=o2418090286; skey=@NOcUSQMnt; ptmbsig=184e9bcc5b672d757fabe6e1a9ec6d32385c801fcacb8517683218829047512aecc3d17f4fe5fd34; p_uin=o2418090286; pt4_token=AC2AlYDghnFTHPB-zkya4WzmOH*LHocmW9INqo*8UoU_; p_skey=rFhOTK4nNq5MKLbAl1Yj1-eL4j7QKD8kFxqBlEwBFFg_; ts_refer=ui.ptlogin2.qq.com/cgi-bin/mibao_vry%3Ftarget%3D2%26jump_login%3D0%26uin%3D2418090286%26pt_mbkey%3Dbc911da2affa42abaa7f04402d0c410ccbf58e7f6051a; yqq_stat=0; player_exist=1; yq_playschange=0; yq_playdata=; qqmusic_fromtag=66; yq_index=0; yplayer_open=1; ts_last=y.qq.com/n/yqq/playlist/2405963402.html',
         'dnt': '1',
         'referer': 'https://y.qq.com/portal/profile.html',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.92 Safari/537.36',
+        'user-agent': 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)',
         'Connection': 'close'
     }
     json_dict = requests.get(url=url, headers=headers).text
@@ -85,11 +95,9 @@ def mapmid():
             print(ss)
             print(i,key['songname'],key['songmid'], key['albummid'], key['singer'][0]['name'])
             print(key['size128']/1024/1024,key['size320']/1024/1024,key['sizeflac']/1024/1024)
-            yinyue = YinYue(ss, key['songmid'], key['albummid'], key)
-            yinyue.get_name()
-            a = yinyue.get_params()
-            if a:
-                continue
+            yinyue = YinYue(ss, key['songmid'], key['albummid'], key, key['songname'], i)
+            #yinyue.get_name()
+            yinyue.get_params()
             yinyue.get_quality()
             yinyue.download_music()
             yinyue.download_pic()
@@ -112,19 +120,21 @@ def mapmid():
 
 class YinYue:
 
-    def __init__(self, url, mid, mmid, song):
+    def __init__(self, url, mid, mmid, song, songname, i):
         #guid = int(random() * 2147483647) * int(time() * 1000) % 10000000000
         self.music_url = url  # 音乐的url
         self.music_id = mid  # 音乐的ID
         self.music_mid = mmid
         self.music_download_url = None  # 最终音乐的下载地址
-        self.music_name = None
+        self.music_name = songname
         self.file_name = "C400%s.m4a" % mid
         self.vkey = None  # 加密的参数
         self.params = None  # 提交的参数
         self.music_pic_url = 'http://y.gtimg.cn/music/photo_new/T002R800x800M000{}.jpg?max_age=2592000'.format(self.music_mid)
         self.guid = str('B5B8F37B3F1CDE728CFA1574AC9F5751')
+        self.gguid = str('1918688533')
         self.song = song
+        self.i = i
         headers = {
             'authority': 'u.y.qq.com',
             'method':'GET',
@@ -137,11 +147,11 @@ class YinYue:
             'cookie': 'RK=v+HSxU5PGX; ptcz=17e3eacf682afd33b90f60d360778ccc68e654bada5bb65f335efc6a492f3ead; pgv_pvi=9761964032; pgv_pvid=2532527580; eas_sid=P1Y581u3a2B3D7E164Y5M8f2o4; tvfe_boss_uuid=c837ea95128d2c3f; ts_uid=3470501600; o_cookie=1521324101; pac_uid=1_1521324101; ptui_loginuin=2418090286; pt2gguin=o2418090286; pgv_info=ssid=s3748524266; pgv_si=s4441048064; qqmusic_fromtag=66; _qpsvr_localtk=0.2075125874706547; uin=o2418090286; skey=@MRFVIIr03; p_uin=o2418090286; pt4_token=08u5pXziyaNWE4jbA9BczIRgdl4gBfJ*Ett8OYHDrr8_; p_skey=1wYixwOM2wk2UiTdjnWrBsqiz*Oo1Ku-WJHwNwnGwO0_; ts_refer=ui.ptlogin2.qq.com/cgi-bin/mibao_vry%3Ftarget%3D2%26jump_login%3D0%26uin%3D2418090286%26pt_mbkey%3Db7d3a9a25933340d60a27c7bde529535f7cfba88f721a; yqq_stat=1; ptmbsig=3953bb3e0261d89210263982c8e62fd449137ecd423c06b590071986dbfebc3e26b065495093383d; player_exist=1; yq_playschange=0; yq_playdata=1; ts_last=y.qq.com/portal/player.html; yplayer_open=1; yq_index=1',
             'dnt':'1',
             'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)',
             'Connection': 'close'
         }
         self.headers = headers
-
+    '''
     def get_name(self):  # 获取歌曲的名字
         resp = requests.get(url=self.music_url)
         resp.encoding = 'utf-8'
@@ -150,13 +160,14 @@ class YinYue:
         for i in dl_list:
                 #print(i.xpath('./@href')[0])
             self.music_name = i.text
-            print(self.music_name)
+            #print(self.music_name)
 
         #name = html.xpath('/html/body/div[2]/div[1]/div/div[1]/h1/')
 
         #doc = pq(response)
         #self.music_name = doc('title').text().split('-')[0]     # 歌曲的名字
         #self.music_name = name
+    '''
 
     def get_params(self):   # 获取加密的vkey
         #self.params = self.music_url[self.music_url.rindex(
@@ -172,11 +183,25 @@ class YinYue:
         rr = json.loads(re)
         #self.vkey = response['data']['items'][0]['vkey']  # 加密的参数
         #print(rr['req_0']['data']['midurlinfo'][0]['vkey'])
+        global rvkey
+        global a
+        global c
+        if (self.i % 2 == 0):
+            rvkey = c;
+            a = rr['req_0']['data']['midurlinfo'][0]['vkey'];
+        else:
+            rvkey = a;
+            c = rr['req_0']['data']['midurlinfo'][0]['vkey'];
+
         print('**********')
+        print(rvkey)
         print(rr['req_0']['data']['midurlinfo'][0]['vkey'])
         print('**********')
         self.vkey = rr['req_0']['data']['midurlinfo'][0]['vkey']
         if self.vkey == '':
+            self.vkey = rvkey
+            if self.vkey != None:
+                return True
             print('no vkey ')
             with open('no.log', 'a+') as f:
                 f.write(self.music_name)
@@ -191,7 +216,7 @@ class YinYue:
     def get_quality(self):  # 获取不同品质的url
         #quality_id = input('请输入1-5(默认最高)')
         index_music_url = 'http://dl.stream.qqmusic.qq.com/{}' + self.music_id + \
-			'.{}?vkey=' + self.vkey + '&guid=B5B8F37B3F1CDE728CFA1574AC9F5751' + '&uin=0&fromtag=53'
+			'.{}?vkey=' + self.vkey + '&guid='+ self.guid + '&uin=0&fromtag=53'
         #url = 'http://dl.stream.qqmusic.qq.com/%s?' % self.file_name
         #index_music_url = url + \
         #    'vkey=%s&guid=%s&fromtag=30' % (self.vkey, self.guid)
@@ -212,7 +237,7 @@ class YinYue:
         self.get_url(music_urls)
 
     def get_url(self, music_urls):  # 用协程判断是否存在不同音乐品质的url
-        print(music_urls)
+        #print(music_urls)
         result = []
 
         async def get(url):
@@ -231,10 +256,10 @@ class YinYue:
         loop.run_until_complete(asyncio.wait(tasks))
         if len(result):
             result.sort()
-            #print(self.music_url)
-            print('**********')
-            print(result)
-            print('**********')
+           # print(self.music_url)
+           # print('**********')
+           # print(result)
+           # print('**********')
             self.music_download_url = result[-2]    # 默认下载最高品质
             print(self.music_download_url)
             with open('playlist.log', 'a+') as f:
@@ -313,7 +338,7 @@ class YinYue:
             'dnt': '1',
             'referer': 'https://y.qq.com/n/yqq/song/{}.html'.format(self.music_id),
             'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)',
             'Connection': 'close'
         }
         """
